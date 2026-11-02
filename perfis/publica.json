@@ -1,0 +1,41 @@
+{
+  "nome": "publica",
+  "descricao": "Versão para o GitHub público: domínio público + CC BY (decisão 2026-11-01). Sem conteúdo CC BY-SA (introduções, NVA, TFT) nem de origem duvidosa.",
+  "publicavel": true,
+  "versoes": [
+    "arc1911",
+    "bl",
+    "kjv"
+  ],
+  "notas_estudo": false,
+  "introducoes": false,
+  "traducoes_pt": true,
+  "creditos_excluir": [
+    "Notas de estudo",
+    "Resumos de livros e capítulos"
+  ],
+  "distribuicao": [
+    "android-apk",
+    "windows-instalador",
+    "pwa-github-pages"
+  ],
+  "a_decidir": [
+    "Hospedagem do PWA público (GitHub Pages) e nome/ícone próprios",
+    "Linux entra ou não"
+  ],
+  "decidido_2026_11_01": [
+    "Pacote DP + CC BY: ARC 1911, Bíblia Livre (CC BY 3.0 BR), KJV, originais STEPBible, falas MACULA, vínculos OpenBible, pessoas TIPNR, glosas PT"
+  ],
+  "fora_por_enquanto": [
+    "Tradução Brasileira 1917 (edição 2010 da SBB sem declaração de DP)",
+    "NVA e TFT (CC BY-SA)",
+    "Introduções em PT (CC BY-SA)",
+    "BKJ em português (origem não registrada)",
+    "Miniaturas e atlas (licença incerta)"
+  ],
+  "conferido_2026_11_01": {
+    "glosas_pt": "tools/pt/glosas.tsv foi gerado por IA (Claude) traduzindo as glosas inglesas da STEPBible (CC BY 4.0), commits b15bb0d e 2cd9b97 de 2026-10-19/20. Obra derivada de CC BY: manter crédito ao STEPBible e declarar 'traduzido por IA'. Sem revisão humana.",
+    "arc1911": "Módulo MySword com folha de rosto da edição de Lisboa, 1911 (Depósito das Escrituras Sagradas); texto de Distributed Proofreaders, 'ainda em revisão'. Texto de 1911 de Almeida: domínio público. Removida 1 nota de scanner ('{Nota ilegível no scan.}', Êx 1:11). Ortografia antiga mantida.",
+    "bl": "Bíblia Livre, CC BY 3.0 BR, baseada em Almeida 1819, exportada do Simple Bible Reader. Colchetes no texto (119 versículos) são palavras de apoio do próprio texto, mantidos."
+  }
+}

@@ -1,0 +1,159 @@
+name: Gerar app
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+
+jobs:
+  banco:
+    name: Banco de textos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Baixar fontes
+        run: tools/fetch_sources.sh
+      - name: Montar banco
+        env:
+          BIBLIA_PERFIL: publica
+        run: |
+          python3 tools/build_db.py build/biblia.db
+          gzip -9 -c build/biblia.db > build/biblia.db.gz
+          echo "${{ github.run_number }}-${GITHUB_SHA::8}" > build/version.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: banco
+          path: |
+            build/biblia.db.gz
+            build/version.txt
+          retention-days: 7
+
+  android:
+    name: Android (APK)
+    needs: banco
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: banco
+          path: app/assets/db
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Chave de assinatura
+        # chave fixa guardada nos segredos do repositório: o Android só aceita atualizar o app se
+        # todas as versões vierem com a mesma chave (gere uma vez com o workflow "Gerar chave Android")
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          [ -n "$KEYSTORE" ] || { echo "Sem chave nos segredos: APK assinado com chave temporária"; exit 0; }
+          echo "$KEYSTORE" | base64 -d > app/android/app/biblia-local.jks
+          printf 'storeFile=biblia-local.jks\nstorePassword=%s\nkeyAlias=biblia\nkeyPassword=%s\n' "$KEY_PASSWORD" "$KEY_PASSWORD" > app/android/key.properties
+      - name: Compilar APK
+        working-directory: app
+        run: flutter build apk --release --build-number=${{ github.run_number }} --dart-define=BUILD=${{ github.run_number }} --dart-define=REPO=${{ github.repository }} --dart-define=UPDATE_TOKEN=${{ secrets.UPDATE_TOKEN }}
+      - name: Renomear
+        run: |
+          mkdir -p dist
+          cp app/build/app/outputs/flutter-apk/app-release.apk dist/BibliaLocal-0.1.${{ github.run_number }}-android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: dist/*.apk
+
+  windows:
+    name: Windows (instalador)
+    needs: banco
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: banco
+          path: app/assets/db
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Compilar
+        working-directory: app
+        run: flutter build windows --release --build-number=${{ github.run_number }} --dart-define=BUILD=${{ github.run_number }} --dart-define=REPO=${{ github.repository }} --dart-define=UPDATE_TOKEN=${{ secrets.UPDATE_TOKEN }}
+      - name: Instalar Inno Setup
+        run: if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+      - name: Instalador e zip
+        shell: pwsh
+        env:
+          APP_VERSION: 0.1.${{ github.run_number }}
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer\windows.iss
+          Compress-Archive -Path app\build\windows\x64\runner\Release\* -DestinationPath "dist\BibliaLocal-$env:APP_VERSION-windows-portatil.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*
+
+  linux:
+    name: Linux
+    needs: banco
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: banco
+          path: app/assets/db
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Compilar
+        working-directory: app
+        run: flutter build linux --release --build-number=${{ github.run_number }} --dart-define=BUILD=${{ github.run_number }} --dart-define=REPO=${{ github.repository }} --dart-define=UPDATE_TOKEN=${{ secrets.UPDATE_TOKEN }}
+      - name: Empacotar
+        run: |
+          mkdir -p dist
+          tar -C app/build/linux/x64/release/bundle -czf dist/BibliaLocal-0.1.${{ github.run_number }}-linux.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*
+
+  publicar:
+    name: Publicar versão
+    if: github.event_name != 'pull_request'
+    needs: [android, windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Criar versão no GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.${{ github.run_number }}
+          name: Bíblia Local 0.1.${{ github.run_number }}
+          body: |
+            **Android:** baixe o arquivo `.apk` no celular e abra para instalar (permita "instalar apps desconhecidos" se o Android pedir).
+            **Windows:** baixe o `instalador.exe` e execute. Há também uma versão portátil em `.zip`.
+            **Linux:** extraia o `.tar.gz` e rode `biblia_local`.
+          files: dist/*

@@ -1,0 +1,7 @@
+# fontes baixadas e banco gerado (recriados por tools/fetch_sources.sh e tools/build_db.py)
+tools/sources/*
+!tools/sources/.gitkeep
+build/
+app/assets/db/biblia.db.gz
+app/assets/db/version.txt
+__pycache__/

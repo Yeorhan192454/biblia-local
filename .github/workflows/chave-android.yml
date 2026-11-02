@@ -1,0 +1,31 @@
+name: Gerar chave Android
+
+# Rodar uma vez só, à mão (aba Actions > Gerar chave Android > Run workflow).
+# Gera a chave de assinatura do app e entrega num arquivo para baixar; copie os dois valores
+# para os segredos do repositório e apague o arquivo depois.
+on:
+  workflow_dispatch:
+
+jobs:
+  chave:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gerar
+        run: |
+          mkdir out
+          PW=$(openssl rand -base64 24 | tr -d '/+=')
+          keytool -genkeypair -keystore k.jks -storetype PKCS12 -alias biblia -keyalg RSA -keysize 2048 \
+            -validity 36500 -storepass "$PW" -keypass "$PW" -dname "CN=Biblia Local, O=Familia, C=BR"
+          base64 -w0 k.jks > out/ANDROID_KEYSTORE_BASE64.txt
+          printf '%s' "$PW" > out/ANDROID_KEY_PASSWORD.txt
+          cat > out/LEIA-ME.txt <<'TXT'
+          Em Settings > Secrets and variables > Actions > New repository secret, crie dois segredos:
+            ANDROID_KEYSTORE_BASE64  = conteúdo de ANDROID_KEYSTORE_BASE64.txt
+            ANDROID_KEY_PASSWORD     = conteúdo de ANDROID_KEY_PASSWORD.txt
+          Depois apague este arquivo do computador e o artefato na página do workflow.
+          TXT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chave-android
+          path: out/
+          retention-days: 1

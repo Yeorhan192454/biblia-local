@@ -1,0 +1,38 @@
+name: biblia_local
+description: "Leitor da Bíblia offline com português e textos originais."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  path: ^1.9.1
+  path_provider: ^2.1.6
+  share_plus: ^13.3.1
+  sqlite3: ^3.7.1
+  typed_data: ^1.4.0
+  web: ^1.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/db/
+  fonts:
+    - family: Gentium
+      fonts:
+        - asset: assets/fonts/GentiumBookPlus-Regular.ttf
+        - asset: assets/fonts/GentiumBookPlus-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/GentiumBookPlus-Italic.ttf
+          style: italic
+    - family: NotoSerifHebrew
+      fonts:
+        - asset: assets/fonts/NotoSerifHebrew.ttf
